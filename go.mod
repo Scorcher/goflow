@@ -9,5 +9,8 @@ require (
 	github.com/oschwald/geoip2-golang v1.4.0
 	github.com/prometheus/client_golang v0.9.2
 	github.com/sirupsen/logrus v1.4.1
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 )
+
+replace github.com/cloudflare/goflow/v3 => github.com/Scorcher/goflow/v3 v3.4.3
+
