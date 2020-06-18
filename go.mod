@@ -12,5 +12,5 @@ require (
 	github.com/stretchr/testify v1.4.0
 )
 
-replace github.com/cloudflare/goflow/v3 => github.com/Scorcher/goflow/v3 v3.4.3
+replace github.com/cloudflare/goflow/v3 => github.com/Scorcher/goflow/v3 v3.4.4
 
