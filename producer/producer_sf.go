@@ -7,6 +7,7 @@ import (
 
 	"github.com/cloudflare/goflow/v3/decoders/sflow"
 	flowmessage "github.com/cloudflare/goflow/v3/pb"
+	"github.com/oschwald/geoip2-golang"
 )
 
 func GetSFlowFlowSamples(packet *sflow.Packet) []interface{} {
@@ -23,7 +24,9 @@ func GetSFlowFlowSamples(packet *sflow.Packet) []interface{} {
 }
 
 type SFlowProducerConfig struct {
-	DecodeGRE bool
+	DecodeGRE      bool
+	EnrichWithASN  bool
+	GeoIpAsnMapper geoip2.Reader
 }
 
 func ParseSampledHeader(flowMessage *flowmessage.FlowMessage, sampledHeader *sflow.SampledHeader) error {
@@ -411,10 +414,28 @@ func ProcessMessageSFlowConfig(msgDec interface{}, config *SFlowProducerConfig) 
 		for _, fmsg := range flowMessageSet {
 			fmsg.SamplerAddress = agent
 			fmsg.SequenceNum = seqnum
+			if config.EnrichWithASN {
+				EnrichWithAsn(fmsg, config)
+			}
 		}
 
 		return flowMessageSet, nil
 	default:
 		return []*flowmessage.FlowMessage{}, errors.New("Bad sFlow version")
+	}
+}
+
+func EnrichWithAsn(fmsg *flowmessage.FlowMessage, config *SFlowProducerConfig) {
+	if 0 == fmsg.SrcAS {
+		record, err := config.GeoIpAsnMapper.ASN(fmsg.SrcAddr)
+		if err == nil {
+			fmsg.SrcAS = uint32(record.AutonomousSystemNumber)
+		}
+	}
+	if 0 == fmsg.DstAS {
+		record, err := config.GeoIpAsnMapper.ASN(fmsg.DstAddr)
+		if err == nil {
+			fmsg.DstAS = uint32(record.AutonomousSystemNumber)
+		}
 	}
 }

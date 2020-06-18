@@ -8,8 +8,10 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/cloudflare/goflow/v3/producer"
 	"github.com/cloudflare/goflow/v3/transport"
 	"github.com/cloudflare/goflow/v3/utils"
+	"github.com/oschwald/geoip2-golang"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
@@ -42,6 +44,8 @@ var (
 	FixedLength = flag.Bool("proto.fixedlen", false, "Enable fixed length protobuf")
 	MetricsAddr = flag.String("metrics.addr", ":8080", "Metrics address")
 	MetricsPath = flag.String("metrics.path", "/metrics", "Metrics path")
+
+	GeoIp2AsnDb = flag.String("geoip2.asn", "", "GeoIP2 ASN database path")
 
 	TemplatePath = flag.String("templates.path", "/templates", "NetFlow/IPFIX templates list")
 
@@ -82,9 +86,21 @@ func main() {
 
 	log.Info("Starting GoFlow")
 
+	var sSFlowConfig producer.SFlowProducerConfig
+	if "" != *GeoIp2AsnDb {
+		db, err := geoip2.Open(*GeoIp2AsnDb)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		sSFlowConfig.EnrichWithASN = true
+		sSFlowConfig.GeoIpAsnMapper = *db
+	}
 	sSFlow := &utils.StateSFlow{
 		Transport: defaultTransport,
 		Logger:    log.StandardLogger(),
+		Config:    &sSFlowConfig,
 	}
 	sNF := &utils.StateNetFlow{
 		Transport: defaultTransport,
